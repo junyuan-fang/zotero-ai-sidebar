@@ -190,6 +190,21 @@ function setupPreferencesPane(win: Window): void {
       );
     },
   );
+  byID<HTMLButtonElement>(doc, "zai-preset-add-compatible")?.addEventListener(
+    "click",
+    () => {
+      const preset = makePreset("compatible");
+      const presets = [...readPresetControls(doc), preset];
+      renderPresetRows(doc, presets);
+      openPresetRow(doc, preset.id);
+      updatePresetSaveButton(doc);
+      setStatus(
+        doc,
+        "zai-preset-status",
+        "已新增第三方 (OpenAI 兼容) 配置，填入 API Key、请求地址和模型后保存。",
+      );
+    },
+  );
   byID<HTMLButtonElement>(doc, "zai-preset-save")?.addEventListener(
     "click",
     () => {
