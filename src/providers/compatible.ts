@@ -320,12 +320,23 @@ export function toChatMessages(messages: Message[]): ChatMessage[] {
   });
 }
 
-// Gateways are usually configured WITH the `/v1` suffix in the pasted URL, but
-// some users paste just the host. The OpenAI SDK appends `/chat/completions`
-// to whatever baseURL it gets, so we leave the path untouched and only trim a
-// trailing slash to avoid `//chat/completions`.
-function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.trim().replace(/\/+$/, "");
+// The OpenAI SDK appends only `/chat/completions` to baseURL, so the version
+// prefix must already be present. Gateways like one-api serve under
+// `/v1/chat/completions`, but users routinely paste just the host (e.g.
+// `https://oneapi.qunhequnhe.com`) — that yields `.../chat/completions` and a
+// 405. So: trim trailing slashes, and if the URL has no real path, default to
+// the conventional `/v1`. A user who supplies their own path (`/v1`, `/api/v1`,
+// …) is respected as-is.
+export function normalizeBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (!trimmed) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    if (url.pathname === "" || url.pathname === "/") return `${trimmed}/v1`;
+  } catch {
+    // Not a parseable absolute URL; leave it untouched.
+  }
+  return trimmed;
 }
 
 function usageChunk(usage: ChatUsage): StreamChunk {

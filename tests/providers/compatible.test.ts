@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { CompatibleProvider, toChatMessages } from '../../src/providers/compatible';
+import { CompatibleProvider, toChatMessages, normalizeBaseUrl } from '../../src/providers/compatible';
 import type { ModelPreset } from '../../src/settings/types';
 import type { StreamChunk } from '../../src/providers/types';
 
@@ -92,6 +92,17 @@ describe('CompatibleProvider', () => {
       { type: 'text_delta', text: ' there' },
       { type: 'usage', input: 7, output: 2, cacheRead: 0 },
     ]);
+  });
+
+  it('normalizes base URLs', () => {
+    // Bare host → default to the conventional /v1 prefix (fixes the 405).
+    expect(normalizeBaseUrl('https://oneapi.qunhequnhe.com')).toBe('https://oneapi.qunhequnhe.com/v1');
+    expect(normalizeBaseUrl('https://oneapi.qunhequnhe.com/')).toBe('https://oneapi.qunhequnhe.com/v1');
+    // Explicit path is respected, trailing slash trimmed.
+    expect(normalizeBaseUrl('https://oneapi.qunhequnhe.com/v1')).toBe('https://oneapi.qunhequnhe.com/v1');
+    expect(normalizeBaseUrl('https://oneapi.qunhequnhe.com/v1/')).toBe('https://oneapi.qunhequnhe.com/v1');
+    expect(normalizeBaseUrl('https://host/api/v3')).toBe('https://host/api/v3');
+    expect(normalizeBaseUrl('')).toBe('');
   });
 
   it('trims the trailing slash from the configured base URL', async () => {
