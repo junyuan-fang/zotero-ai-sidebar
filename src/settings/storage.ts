@@ -3,6 +3,7 @@ import {
   DEFAULT_MODELS,
   DEFAULT_REASONING_EFFORT,
   DEFAULT_REASONING_SUMMARY,
+  defaultPresetLabel,
   type AgentPermissionMode,
   type ModelPreset,
   type ProviderKind,
@@ -70,12 +71,17 @@ export function zoteroPrefs(): PrefsStore {
 function normalizePreset(value: unknown): ModelPreset | null {
   if (!value || typeof value !== 'object') return null;
   const preset = value as Partial<ModelPreset>;
-  if (preset.provider !== 'openai' && preset.provider !== 'anthropic') return null;
+  if (
+    preset.provider !== 'openai' &&
+    preset.provider !== 'anthropic' &&
+    preset.provider !== 'compatible'
+  )
+    return null;
   const provider = preset.provider as ProviderKind;
   const { model, models } = normalizeModels(provider, preset.model, preset.models);
   return {
     id: String(preset.id || `preset-${Date.now()}`),
-    label: String(preset.label || (provider === 'anthropic' ? 'Claude' : 'GPT')),
+    label: String(preset.label || defaultPresetLabel(provider)),
     provider,
     apiKey: String(preset.apiKey || ''),
     baseUrl: String(preset.baseUrl || DEFAULT_BASE_URLS[provider]),

@@ -59,6 +59,7 @@ import {
   DEFAULT_REASONING_SUMMARY,
   REASONING_EFFORT_OPTIONS,
   REASONING_SUMMARY_OPTIONS,
+  defaultPresetLabel,
   type AgentPermissionMode,
   type ModelPreset,
   type ProviderKind,
@@ -1212,8 +1213,9 @@ function renderPresetEditor(
   const box = el(doc, "div", "preset-edit native-preset-edit");
 
   const provider = selectEl(doc, [
-    ["openai", "OpenAI 兼容"],
+    ["openai", "OpenAI (Responses)"],
     ["anthropic", "Anthropic"],
+    ["compatible", "第三方 (OpenAI 兼容)"],
   ]);
   provider.value = draft.provider;
   const label = inputEl(doc, draft.label);
@@ -1234,8 +1236,12 @@ function renderPresetEditor(
   // save live, matching label/apiKey/baseUrl behavior.
   const modelsField = doc.createElement("div") as HTMLDivElement;
   modelsField.className = "preset-models-list";
-  const placeholderFor = (kind: ProviderKind) =>
-    DEFAULT_MODELS[kind] || (kind === "anthropic" ? "claude-..." : "gpt-...");
+  const placeholderFor = (kind: ProviderKind) => {
+    if (DEFAULT_MODELS[kind]) return DEFAULT_MODELS[kind];
+    if (kind === "anthropic") return "claude-...";
+    if (kind === "compatible") return "model-id (如 deepseek-chat)";
+    return "gpt-...";
+  };
   // Auto-size the input via the `size` attribute (monospace font ⇒ ~1ch each).
   // Clamped 8..28 so empty inputs are still typable and crazy-long ids don't
   // blow out the row.
@@ -1383,8 +1389,7 @@ function renderPresetEditor(
     return {
       id: current.id,
       provider: providerKind,
-      label:
-        label.value.trim() || (providerKind === "anthropic" ? "Claude" : "GPT"),
+      label: label.value.trim() || defaultPresetLabel(providerKind),
       apiKey: apiKey.value.trim(),
       baseUrl: baseUrl.value.trim() || DEFAULT_BASE_URLS[providerKind],
       model: activeModel,
@@ -1419,8 +1424,7 @@ function renderPresetEditor(
 
   provider.addEventListener("change", () => {
     const nextProvider = provider.value as ProviderKind;
-    label.value =
-      label.value || (nextProvider === "anthropic" ? "Claude" : "GPT");
+    label.value = label.value || defaultPresetLabel(nextProvider);
     if (
       !baseUrl.value ||
       Object.values(DEFAULT_BASE_URLS).includes(baseUrl.value)
@@ -1526,8 +1530,13 @@ function renderPresetEditor(
   });
   buttons.append(save);
 
-  for (const kind of ["openai", "anthropic"] as ProviderKind[]) {
-    const add = buttonEl(doc, kind === "openai" ? "+ OpenAI" : "+ Anthropic");
+  const addButtonLabels: Record<ProviderKind, string> = {
+    openai: "+ OpenAI",
+    anthropic: "+ Anthropic",
+    compatible: "+ 第三方",
+  };
+  for (const kind of ["openai", "anthropic", "compatible"] as ProviderKind[]) {
+    const add = buttonEl(doc, addButtonLabels[kind]);
     add.addEventListener("click", () => {
       const preset = makePreset(kind);
       state.presets = [...state.presets, preset];
@@ -8645,7 +8654,7 @@ function makePreset(provider: ProviderKind): ModelPreset {
   return {
     id: makeId(),
     provider,
-    label: provider === "anthropic" ? "Claude" : "GPT",
+    label: defaultPresetLabel(provider),
     apiKey: "",
     baseUrl: DEFAULT_BASE_URLS[provider],
     model: DEFAULT_MODELS[provider],

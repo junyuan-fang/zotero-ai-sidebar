@@ -44,7 +44,8 @@ export function PreferencesPane({ onDone }: Props) {
       </div>
       <div className="add-buttons" style={{ marginTop: 12 }}>
         <button onClick={() => add('anthropic')}>+ Anthropic</button>
-        <button onClick={() => add('openai')}>+ OpenAI 兼容</button>
+        <button onClick={() => add('openai')}>+ OpenAI</button>
+        <button onClick={() => add('compatible')}>+ 第三方 (OpenAI 兼容)</button>
       </div>
       <div className="preset-list">
         {presets.map((p) => (
@@ -117,7 +118,13 @@ function PresetRow({
             <input
               value={preset.model}
               onChange={(e) => onUpdate({ model: e.target.value })}
-              placeholder={preset.provider === 'anthropic' ? 'claude-opus-4-7-…' : 'gpt-5.2'}
+              placeholder={
+                preset.provider === 'anthropic'
+                  ? 'claude-opus-4-7-…'
+                  : preset.provider === 'compatible'
+                    ? 'model-id (如 deepseek-chat)'
+                    : 'gpt-5.2'
+              }
             />
           </Field>
           <Field label="Max tokens">

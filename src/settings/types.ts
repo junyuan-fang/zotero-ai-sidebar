@@ -1,4 +1,9 @@
-export type ProviderKind = 'anthropic' | 'openai';
+// 'compatible' = any third-party OpenAI-compatible gateway (one-api / new-api /
+// self-hosted relay) reached via the classic Chat Completions endpoint. WHY a
+// separate kind from 'openai': the 'openai' adapter talks the Responses API
+// (`POST /responses`), which relays generally do NOT implement — they expose
+// `POST /v1/chat/completions`. See providers/compatible.ts.
+export type ProviderKind = 'anthropic' | 'openai' | 'compatible';
 export type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 export type ReasoningSummary = 'auto' | 'concise' | 'detailed' | 'none';
 export type AgentPermissionMode = 'default' | 'yolo';
@@ -31,16 +36,21 @@ export interface ModelPreset {
 export const DEFAULT_BASE_URLS: Record<ProviderKind, string> = {
   anthropic: '',
   openai: '',
+  // Third-party gateways have no canonical default; the user must paste one
+  // (e.g. https://oneapi.qunhequnhe.com). Left blank so the field reads empty.
+  compatible: '',
 };
 
 export const DEFAULT_MODELS: Record<ProviderKind, string> = {
   anthropic: '',
   openai: '',
+  compatible: '',
 };
 
 export const MODEL_SUGGESTIONS: Record<ProviderKind, string[]> = {
   anthropic: [],
   openai: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.3-codex', 'gpt-5.2'],
+  compatible: [],
 };
 
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'xhigh';
@@ -60,11 +70,22 @@ export const REASONING_SUMMARY_OPTIONS: Array<[ReasoningSummary, string]> = [
   ['none', 'None - 不显示思考'],
 ];
 
+export function defaultPresetLabel(provider: ProviderKind): string {
+  switch (provider) {
+    case 'anthropic':
+      return 'Claude';
+    case 'openai':
+      return 'GPT';
+    case 'compatible':
+      return '第三方';
+  }
+}
+
 export function newPreset(provider: ProviderKind): ModelPreset {
   const defaultModel = DEFAULT_MODELS[provider];
   return {
     id: crypto.randomUUID(),
-    label: provider === 'anthropic' ? 'Claude' : 'GPT',
+    label: defaultPresetLabel(provider),
     provider,
     apiKey: '',
     baseUrl: DEFAULT_BASE_URLS[provider],

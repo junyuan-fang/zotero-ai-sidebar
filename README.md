@@ -84,9 +84,12 @@ Zotero AI Sidebar 主要就是把这些动作收回来。你仍然在 Zotero 里
 
 在插件设置里新增一个模型预设：
 
-- 提供商：`openai`、`anthropic`，或 OpenAI 兼容端点。
+- 提供商：
+  - `openai`：OpenAI 官方 Responses API。
+  - `anthropic`：Anthropic Messages API。
+  - `第三方 (OpenAI 兼容)`：任意走 `/v1/chat/completions` 的中转/网关（one-api、new-api、自建代理等，例如 `https://oneapi.qunhequnhe.com`）。填 API Key + 请求地址 + 可用模型即可。
 - API Key：保存在本地 Zotero 偏好中。
-- Base URL：官方地址，或你自己的中转地址。
+- Base URL：官方地址，或你自己的中转地址（第三方填网关地址，如 `https://oneapi.qunhequnhe.com/v1`）。
 - 模型：填写该端点支持的模型 ID。
 - Max tokens / 工具循环上限：控制输出长度、成本和工具调用次数。
 

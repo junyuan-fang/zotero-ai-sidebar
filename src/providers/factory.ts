@@ -2,6 +2,7 @@ import type { Provider } from './types';
 import type { ModelPreset } from '../settings/types';
 import { AnthropicProvider } from './anthropic';
 import { OpenAIProvider } from './openai';
+import { CompatibleProvider } from './compatible';
 
 // Provider registry keyed by `preset.provider`. INVARIANT: exhaustive on
 // `ProviderKind` — TypeScript will error here if a new provider is added
@@ -14,5 +15,7 @@ export function getProvider(preset: ModelPreset): Provider {
       return new AnthropicProvider();
     case 'openai':
       return new OpenAIProvider();
+    case 'compatible':
+      return new CompatibleProvider();
   }
 }

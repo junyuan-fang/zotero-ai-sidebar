@@ -43,6 +43,7 @@ import {
   DEFAULT_REASONING_EFFORT,
   DEFAULT_REASONING_SUMMARY,
   REASONING_SUMMARY_OPTIONS,
+  defaultPresetLabel,
   type ModelPreset,
   type ProviderKind,
   type ReasoningEffort,
@@ -1092,8 +1093,9 @@ function presetRow(doc: Document, preset: ModelPreset): HTMLElement {
   const provider = select(
     doc,
     [
-      ["openai", "OpenAI 兼容"],
+      ["openai", "OpenAI (Responses)"],
       ["anthropic", "Anthropic"],
+      ["compatible", "第三方 (OpenAI 兼容)"],
     ],
     preset.provider,
   );
@@ -1124,8 +1126,7 @@ function presetRow(doc: Document, preset: ModelPreset): HTMLElement {
   };
   provider.addEventListener("change", () => {
     const kind = provider.value as ProviderKind;
-    if (!label.value.trim())
-      label.value = kind === "anthropic" ? "Claude" : "GPT";
+    if (!label.value.trim()) label.value = defaultPresetLabel(kind);
     if (!baseUrl.value.trim()) baseUrl.value = DEFAULT_BASE_URLS[kind];
     modelList.setProvider(kind);
     if (modelList.models().length === 0 && DEFAULT_MODELS[kind]) {
@@ -1287,8 +1288,7 @@ function readPresetControls(doc: Document): ModelPreset[] {
   );
   return Array.from(doc.querySelectorAll(".zai-preset-row")).map((row) => {
     const card = row as HTMLElement;
-    const provider =
-      controlValue(card, "provider") === "anthropic" ? "anthropic" : "openai";
+    const provider = readProviderKind(controlValue(card, "provider"));
     const models = splitList(controlValue(card, "models"));
     const fallbackModel = DEFAULT_MODELS[provider];
     const model = models[0] || fallbackModel;
@@ -1308,9 +1308,7 @@ function readPresetControls(doc: Document): ModelPreset[] {
     return {
       id: card.dataset.id || makeId("preset"),
       provider,
-      label:
-        controlValue(card, "label") ||
-        (provider === "anthropic" ? "Claude" : "GPT"),
+      label: controlValue(card, "label") || defaultPresetLabel(provider),
       apiKey: controlValue(card, "apiKey"),
       baseUrl: controlValue(card, "baseUrl") || DEFAULT_BASE_URLS[provider],
       model,
@@ -2001,12 +1999,21 @@ function dedupe(values: string[]): string[] {
   return result;
 }
 
+// Coerce the persisted/select string back to a known ProviderKind. WHY a
+// helper instead of a cast: a corrupt or legacy pref value must fall back to a
+// real provider, and `compatible` must NOT collapse into `openai` (they use
+// different APIs). Unknown values default to `openai`.
+function readProviderKind(value: string): ProviderKind {
+  if (value === "anthropic" || value === "compatible") return value;
+  return "openai";
+}
+
 function makePreset(provider: ProviderKind): ModelPreset {
   const model = DEFAULT_MODELS[provider];
   return {
     id: makeId("preset"),
     provider,
-    label: provider === "anthropic" ? "Claude" : "GPT",
+    label: defaultPresetLabel(provider),
     apiKey: "",
     baseUrl: DEFAULT_BASE_URLS[provider],
     model,
