@@ -161,56 +161,39 @@ function setupPreferencesPane(win: Window): void {
   renderToolSettings(doc);
   renderSyncSettings(doc);
 
+  // Add-preset buttons are bound idempotently per-button (NOT gated by the
+  // one-time `root.dataset.bound` flag below). WHY: across a plugin upgrade
+  // Zotero can run setupPreferencesPane once before a button exists (or with
+  // the flag already set), which previously left a newly added button — e.g.
+  // "+ 第三方" — permanently unbound while the others kept working. Per-button
+  // guards make every load (re)bind any button the current code knows about,
+  // exactly once.
+  const addPreset = (kind: ProviderKind, status: string) => {
+    const preset = makePreset(kind);
+    const presets = [...readPresetControls(doc), preset];
+    renderPresetRows(doc, presets);
+    openPresetRow(doc, preset.id);
+    updatePresetSaveButton(doc);
+    setStatus(doc, "zai-preset-status", status);
+  };
+  bindClickOnce(doc, "zai-preset-add-openai", () =>
+    addPreset("openai", "已新增 OpenAI 配置，保存后生效。"),
+  );
+  bindClickOnce(doc, "zai-preset-add-anthropic", () =>
+    addPreset("anthropic", "已新增 Anthropic 配置，保存后生效。"),
+  );
+  bindClickOnce(doc, "zai-preset-add-compatible", () =>
+    addPreset(
+      "compatible",
+      "已新增第三方 (OpenAI 兼容) 配置，填入 API Key、请求地址和模型后保存。",
+    ),
+  );
+  bindClickOnce(doc, "zai-preset-save", () => {
+    void savePresetControlsWithConnectivity(doc);
+  });
+
   if (root.dataset.bound === "true") return;
   root.dataset.bound = "true";
-
-  byID<HTMLButtonElement>(doc, "zai-preset-add-openai")?.addEventListener(
-    "click",
-    () => {
-      const preset = makePreset("openai");
-      const presets = [...readPresetControls(doc), preset];
-      renderPresetRows(doc, presets);
-      openPresetRow(doc, preset.id);
-      updatePresetSaveButton(doc);
-      setStatus(doc, "zai-preset-status", "已新增 OpenAI 配置，保存后生效。");
-    },
-  );
-  byID<HTMLButtonElement>(doc, "zai-preset-add-anthropic")?.addEventListener(
-    "click",
-    () => {
-      const preset = makePreset("anthropic");
-      const presets = [...readPresetControls(doc), preset];
-      renderPresetRows(doc, presets);
-      openPresetRow(doc, preset.id);
-      updatePresetSaveButton(doc);
-      setStatus(
-        doc,
-        "zai-preset-status",
-        "已新增 Anthropic 配置，保存后生效。",
-      );
-    },
-  );
-  byID<HTMLButtonElement>(doc, "zai-preset-add-compatible")?.addEventListener(
-    "click",
-    () => {
-      const preset = makePreset("compatible");
-      const presets = [...readPresetControls(doc), preset];
-      renderPresetRows(doc, presets);
-      openPresetRow(doc, preset.id);
-      updatePresetSaveButton(doc);
-      setStatus(
-        doc,
-        "zai-preset-status",
-        "已新增第三方 (OpenAI 兼容) 配置，填入 API Key、请求地址和模型后保存。",
-      );
-    },
-  );
-  byID<HTMLButtonElement>(doc, "zai-preset-save")?.addEventListener(
-    "click",
-    () => {
-      void savePresetControlsWithConnectivity(doc);
-    },
-  );
   byID<HTMLButtonElement>(doc, "zai-ui-save")?.addEventListener("click", () => {
     saveUiSettings(zoteroPrefs(), readUiSettingsControls(doc));
     renderUiSettings(doc);
@@ -2153,6 +2136,17 @@ function makeId(prefix: string): string {
 
 function byID<T extends HTMLElement>(doc: Document, id: string): T | null {
   return doc.getElementById(id) as T | null;
+}
+
+// Attach a click handler exactly once per element, regardless of how many
+// times setupPreferencesPane runs. The guard lives on the button itself (not
+// a shared root flag), so a button that only appears after a plugin upgrade
+// still gets bound on the next pane load.
+function bindClickOnce(doc: Document, id: string, handler: () => void): void {
+  const btn = byID<HTMLButtonElement>(doc, id);
+  if (!btn || btn.dataset.zaiClickBound === "true") return;
+  btn.dataset.zaiClickBound = "true";
+  btn.addEventListener("click", handler);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
